@@ -555,4 +555,39 @@ _Source: Claude memory only (chat-history search tools were not available in thi
 - **Next steps**
   - Write an initial mathematical model (both chapters) on paper and discuss with Roel and Johan.
   - Then implement `instruments.py`, `liability.py`, `optimise.py` with the §6.6 tests (unchanged from §15).
+
+### Week ending 2026-10-09
+
+_Source: Claude memory only (chat-history search tools were not available in this run); only one thesis memory file changed in this window, so other work this week may be missing._
+
+- **Decisions**
+  - Adds to §4 / §6.5 and the chapter-2 (Merton) extension — leaning towards, not decided: treat the protection return (BR) as the **risk-free rate / numéraire** of the model, motivated by Sharpe & Tint (1990).
+- **Progress**
+  - Literature (adds to §11): read **Sharpe & Tint (1990), "Liabilities — A New Approach", JPM 16(2)**. Key points from Frank's notes: asset–liability comovement is a utility benefit (i.e. a hedge); the *liability hedging credit* (LHC) measures how much an asset provides utility to an investor with given liabilities; surplus optimisation accepts lower expected return and/or more asset risk to better hedge liability increases; drop terms in the objective that are constant w.r.t. the decision. Verdict: very elegant; the risk / return / hedging-credit decomposition is a candidate framing for the mismatch objective.
+  - Thesis quotes saved in Frank's reading notes (Sharpe & Tint on surplus optimisation and on the LHC as the one extra component).
+  - Code / writing / meetings: nothing new found in memory this week.
+- **Cardano input**
+  - No answers to §10 questions found this week.
+- **Next steps**
+  - Open questions from the reading: can the risk / return / LHC formulation be carried into the Merton model? Why does Sharpe–Tint use mean–variance utility and Merton CRRA, and which utility functions are candidates (links to the downside-risk question from last week)?
+  - Continue the literature review (Merton 1969 is listed in the reading notes but has no notes yet).
+  - Initial mathematical model for both chapters to discuss with Roel and Johan; then `instruments.py`, `liability.py`, `optimise.py` with the §6.6 tests (unchanged).
+
+### Week ending 2026-10-16
+
+_Source: Claude memory only (chat-history search tools were not available in this run); the two thesis memory files updated this week carry no per-item dates, so attribution to this week is likely but not certain._
+
+- **Decisions**
+  - Changes §5 / §15 (sequencing): Frank submitted an initial LaTeX report (Merton model extended with mismatch risk) to Roel and Johan; **both agreed to build an initial "Merton" model first**.
+  - Supersedes §15 "Next step" — plan: (1) code the base case with $\theta_E = 0$, $\beta = \omega = 1$ (symbols as defined in Frank's LaTeX report, not yet in §6; reconcile) under Ernsting et al.'s **policy 1 (no spread risk)** and **policy 2 (zero carry)** (§3.4), over ~two weeks, to show the supervisors; (2) derive the HJB equation and the optimal bond-share policy $x_B$; (3) the full model.
+- **Progress**
+  - Writing: initial LaTeX report on the Merton-with-mismatch model sent to both supervisors (see above).
+  - Literature (adds to §11): read **Merton (1969)**, "Lifetime Portfolio Selection under Uncertainty: The Continuous-Time Case", *REStat* 51(3). Frank's notes: Merton is the continuous-time version of the mean–variance tangency logic; CRRA or CARA utility is needed to solve the Bellman system analytically; infinite-horizon conditions are easier, so examine the infinite-horizon problem first; admissible processes must be Markovian with first two moments $O(\Delta t)$ and higher moments $o(\Delta t)$.
+  - Working rule (adds to §14): LLM use is allowed but output must not be adopted blindly; Frank must be able to derive and defend every modelling choice to his supervisors (duration was not part of his curriculum, so explain it from first principles).
+  - Code: no model code reported yet; base-case coding (VS Code + Claude Code) is the next step.
+- **Cardano input**
+  - No answers to §10 questions found this week.
+- **Next steps**
+  - Implement the base case ($\theta_E = 0$, $\beta = \omega = 1$; policies 1 and 2) for the supervisors in ~two weeks; then HJB / optimal $x_B$.
+  - Open questions from the reading: when do KKT conditions apply (and are they only analytical)? What do "Markovian" and "class of probability distributions" mean in Merton (1969)? Why mean–variance (Sharpe–Tint) vs CRRA (Merton), and which utilities are candidates?
 <!-- weekly-log:end -->
