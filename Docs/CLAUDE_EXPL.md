@@ -42,6 +42,7 @@ constraints.
 ## 3. Institutional background
 
 ### 3.1 From FTK to Wtp
+
 Under the old FTK regime, any deviation in realised hedging hit the fund's funding ratio
 (*dekkingsgraad*) and was shared by all participants. Under the Wtp **solidaire premieregeling
 (SPR)**, each cohort's capital earns two return components according to its own allocation:
@@ -58,6 +59,7 @@ mandate**. The LDI manager's task is unchanged from the FTK era (hedge expected 
 the instrument set.
 
 ### 3.2 Two ways to deliver BR
+
 - **Praktisch / direct method**: a separate protection portfolio (bonds, swaps). Its *realised*
   return is what cohorts receive as BR.
 - **Theoretisch / indirect method** (the method most funds choose): BR is **computed** from the RTS
@@ -73,6 +75,7 @@ post. Tracking error against the theoretical BR is therefore a *supervised* quan
 invented metric.
 
 ### 3.3 How theoretical BR is computed
+
 BR is the percentage change in the cohort's **annuity factor** (*tarief*), i.e. the capital needed per
 €1 of benefit, driven by changes in the DNB RTS. The benchmark RTS is built from the **6-month Euribor
 swap curve** (Ernsting et al. 2025). It is not directly investable.
@@ -80,12 +83,12 @@ swap curve** (Ernsting et al. 2025). It is not directly investable.
 Worked monthly update (Potter van Loon & Alserda 2025, Table 1). Keep it as a unit test for the
 liability module:
 
-| Step | Tariff | Return component |
-|---|---|---|
-| Previous month | 10.09 | |
-| Accrue required interest (short rate) | 10.12 | 0.30% |
-| Age one month (micro-longevity) | 10.13 | 0.10% |
-| New RTS | 10.35 | **2.17% = financial protection return** |
+| Step                                  | Tariff | Return component                              |
+| ------------------------------------- | ------ | --------------------------------------------- |
+| Previous month                        | 10.09  |                                               |
+| Accrue required interest (short rate) | 10.12  | 0.30%                                         |
+| Age one month (micro-longevity)       | 10.13  | 0.10%                                         |
+| New RTS                               | 10.35  | **2.17% = financial protection return** |
 
 At protection share $\pi_c = 60\%$, the cohort is credited $0.6 \times 2.17\% = 1.30\%$ financial BR.
 
@@ -103,6 +106,7 @@ $(1-0.1928)/(1-0.1799)-1 = -1.57\%$. **Curve risk is material. The base case use
 the key-rate extension removes it.**
 
 ### 3.4 Where the mismatch comes from (Cardano's view)
+
 Ernsting, Teunissen & Vereijken (2025) list the sources: spread results on long bonds, **cash drag**,
 investment costs, curve and duration mismatches, and implementation gap.
 
@@ -121,6 +125,7 @@ investment costs, curve and duration mismatches, and implementation gap.
   +50 bp spread shock gives the young cohort an OR of −2.0% in a young fund and −4.7% in an old fund.
 
 ### 3.5 Collateral and liquidity: the empirical motivation
+
 Jansen, Klingler, Ranaldo & Duijm (2026, *RFS*), on DNB data:
 
 - About **60%** of Dutch pension portfolio duration comes from swaps.
@@ -135,18 +140,19 @@ Jansen, Klingler, Ranaldo & Duijm (2026, *RFS*), on DNB data:
 ## 4. Research question and scope
 
 **Main question (working version).**
+
 > How should a pension fund construct and dynamically manage its interest rate overlay so as to
 > deliver the theoretical Wtp protection return at the lowest cost and risk to participants, and
 > what is the efficient frontier of that implementation problem?
 
 **The Markowitz analogue, with different axes.**
 
-| | Markowitz | Fulcrum |
-|---|---|---|
-| Choice variable | Asset weights | Instrument mix: cash / bonds / swaps (later swaptions, repo) |
-| Return axis | Expected return | Expected **mismatch return** (spread earned − cash drag − costs) |
-| Risk axis | Variance | **Tracking error** of the mismatch vs theoretical BR (later CVaR) |
-| Constraints | Budget | Budget, hedge-ratio band, collateral/margin, spread limit, no shorting |
+|                 | Markowitz       | Fulcrum                                                                  |
+| --------------- | --------------- | ------------------------------------------------------------------------ |
+| Choice variable | Asset weights   | Instrument mix: cash / bonds / swaps (later swaptions, repo)             |
+| Return axis     | Expected return | Expected **mismatch return** (spread earned − cash drag − costs) |
+| Risk axis       | Variance        | **Tracking error** of the mismatch vs theoretical BR (later CVaR)  |
+| Constraints     | Budget          | Budget, hedge-ratio band, collateral/margin, spread limit, no shorting   |
 
 **Contribution: state it precisely.** Surplus optimisation (mean–variance on assets minus
 liabilities) is Sharpe & Tint (1990), and later Hoevenaars et al. (2008) and Ang–Chen–Sundaresan.
@@ -159,6 +165,7 @@ without optimising it.
 
 **Candidate sub-questions** (prune to one or two pillars; the rest become robustness or further
 research):
+
 1. *Instrument choice*: optimal cash/bond/swap split for a required rate exposure; how it shifts with
    the asset-swap spread, cash drag and repo.
 2. *Collateral buffer*: optimal cash held against margin calls (an inventory problem: too little
@@ -170,6 +177,7 @@ research):
 5. *Regimes and stress*: does the optimal overlay survive a 2022-style shock?
 
 **Out of scope for the core:**
+
 - Life-cycle optimisation across heterogeneous cohorts. The cohort protection requirement is an
   **exogenous input**.
 - Inflation protection. Wtp BR is nominal by law.
@@ -197,26 +205,27 @@ is switched off. Write that as a test.
 ## 6. Base-case specification (what to code first)
 
 ### 6.1 Notation
+
 All quantities are **per unit of protected capital** $K = 1$, where $K = \sum_c \pi_c V_c$ is the
 capital whose return must equal BR. Relative to $K$ the target hedge ratio is 100% by construction.
 The familiar 50–80% hedge ratios are *fund-level* numbers relative to total liabilities.
 
-| Symbol | Meaning | Unit |
-|---|---|---|
-| $\Delta$ | period length, $1/12$ (monthly) | years |
-| $w_c$ | cash / MMF holding (market value) | fraction of $K$ |
-| $w_b$ | bond holding (market value), e.g. DSL/Bund basket | fraction of $K$ |
-| $n_s$ | receiver-swap notional (unfunded) | multiple of $K$ |
-| $r^f$ | floating rate paid on the swap (6m Euribor) | p.a., decimal |
-| $c$ | cash drag: MMF yield $= r^f - c$ | p.a., decimal |
-| $y(\tau)$ | swap / RTS rate for maturity $\tau$ | p.a., decimal |
-| $s$ | asset-swap spread = bond yield − matched-maturity swap rate ($>0$: bond yields more) | p.a., decimal |
-| $D_b, D_s, D_L$ | modified durations of bond, swap (per unit notional), protection liability | years |
-| $\Delta y$ | parallel shift of swap curve / RTS over the period | decimal |
-| $\Delta s$ | change in asset-swap spread over the period | decimal |
-| $\sigma_y, \sigma_s, \rho$ | vols of $\Delta y$, $\Delta s$ and their correlation | per period |
-| $G$ | duration gap $= w_b D_b + n_s D_s - D_L$ | years |
-| $h$ | hedge ratio $= (w_b D_b + n_s D_s)/D_L = 1 + G/D_L$ | — |
+| Symbol                       | Meaning                                                                                 | Unit              |
+| ---------------------------- | --------------------------------------------------------------------------------------- | ----------------- |
+| $\Delta$                   | period length, $1/12$ (monthly)                                                       | years             |
+| $w_c$                      | cash / MMF holding (market value)                                                       | fraction of $K$ |
+| $w_b$                      | bond holding (market value), e.g. DSL/Bund basket                                       | fraction of $K$ |
+| $n_s$                      | receiver-swap notional (unfunded)                                                       | multiple of $K$ |
+| $r^f$                      | floating rate paid on the swap (6m Euribor)                                             | p.a., decimal     |
+| $c$                        | cash drag: MMF yield $= r^f - c$                                                      | p.a., decimal     |
+| $y(\tau)$                  | swap / RTS rate for maturity $\tau$                                                   | p.a., decimal     |
+| $s$                        | asset-swap spread = bond yield − matched-maturity swap rate ($>0$: bond yields more) | p.a., decimal     |
+| $D_b, D_s, D_L$            | modified durations of bond, swap (per unit notional), protection liability              | years             |
+| $\Delta y$                 | parallel shift of swap curve / RTS over the period                                      | decimal           |
+| $\Delta s$                 | change in asset-swap spread over the period                                             | decimal           |
+| $\sigma_y, \sigma_s, \rho$ | vols of $\Delta y$, $\Delta s$ and their correlation                                | per period        |
+| $G$                        | duration gap $= w_b D_b + n_s D_s - D_L$                                              | years             |
+| $h$                        | hedge ratio $= (w_b D_b + n_s D_s)/D_L = 1 + G/D_L$                                   | —                |
 
 ### 6.2 Instrument returns (first order: duration, no convexity, no roll-down)
 
@@ -231,6 +240,7 @@ $R_P = w_c R_c + w_b R_b + n_s R_s$. Note that cash plus a receiver swap is a sy
 the fixed rate minus the cash drag.
 
 ### 6.3 Protection return (liability side)
+
 General definition: the cohort's projected cash flows $CF_k$ at times $\tau_k$, valued on the DNB RTS:
 $L_t = \sum_k CF_k\,(1+R_{t,\tau_k})^{-\tau_k}$, and $R_L = L_{t+\Delta}/L_t - 1$ with cash flows held
 fixed. **Base case:** the zero-coupon shortcut of §3.3 with $d$ = liability duration, whose first-order
@@ -273,6 +283,7 @@ changes. Spreads mean-revert (pull-to-par), so long-horizon spread risk is overs
 stage-3 insight, not a bug.
 
 ### 6.5 Optimisation problem
+
 For a target $\bar\mu$, solve
 
 $$
@@ -292,6 +303,7 @@ This is a convex QP. Solve with `cvxpy`. The equivalent penalty form is
 $\max_x \mu - \tfrac{\lambda}{2}\operatorname{Var}(m)$ with a sweep over $\lambda$.
 
 ### 6.6 Closed-form results (implement as tests)
+
 Assume a flat curve ($r^f = y$), constraint 2 binding, and the collateral constraint off unless
 stated.
 
@@ -314,37 +326,39 @@ stated.
 - **Swap sizing.** $n_s = (h D_L - w_b D_b)/D_s$.
 
 ### 6.7 Placeholder parameters (illustrative only, never report as estimates)
+
 Use these to run the pipeline before data arrive. Every parameter object carries a
 `source ∈ {"placeholder", "calibrated"}` field.
 
-| Parameter | Value | Origin |
-|---|---|---|
-| $D_L$ | 20 | handoff worked example |
-| $D_b$ | 15 | Ernsting et al. example |
-| $D_s$ | 20 (≈30y receiver) | stylised |
-| $s$ | 40 bp | Ernsting et al. example |
-| $c$ | 25 bp (20 bp alt.) | Ernsting et al.; Roel |
-| $\sigma_y, \sigma_s, \rho$ (annual) | 0.8%, 0.3%, 0 | arbitrary test values |
-| $\Delta y^{\text{str}}$ | +100 bp | replace with Cardano's collateral stress |
-| im | 0 | replace with Cardano's IM model |
-| $[h_{lo}, h_{hi}]$ | [0.95, 1.05] | placeholder |
-| $SD_{\max}$ | 5 | placeholder |
+| Parameter                             | Value               | Origin                                   |
+| ------------------------------------- | ------------------- | ---------------------------------------- |
+| $D_L$                               | 20                  | handoff worked example                   |
+| $D_b$                               | 15                  | Ernsting et al. example                  |
+| $D_s$                               | 20 (≈30y receiver) | stylised                                 |
+| $s$                                 | 40 bp               | Ernsting et al. example                  |
+| $c$                                 | 25 bp (20 bp alt.)  | Ernsting et al.; Roel                    |
+| $\sigma_y, \sigma_s, \rho$ (annual) | 0.8%, 0.3%, 0       | arbitrary test values                    |
+| $\Delta y^{\text{str}}$             | +100 bp             | replace with Cardano's collateral stress |
+| im                                    | 0                   | replace with Cardano's IM model          |
+| $[h_{lo}, h_{hi}]$                  | [0.95, 1.05]        | placeholder                              |
+| $SD_{\max}$                         | 5                   | placeholder                              |
 
 ## 7. Data (monthly, end-of-month)
 
-| Series | Used for | Source | Notes |
-|---|---|---|---|
-| DNB RTS (full curve) | $R_L$, liability durations | DNB website | Methodology changes over time (LLP, UFR / extrapolation). Store the version per date. |
-| EUR swap curve vs 6m Euribor, 1–50y | $y(\tau)$, $\Delta y$, swap revaluation | Bloomberg | Candidate tickers `EUSA<n> Curncy` (verify). |
-| €STR OIS curve | discounting, robustness | Bloomberg | €STR exists only from Oct 2019. |
-| 6m Euribor, €STR fixings | $r^f$, cash return | Bloomberg | e.g. `EUR006M Index`, `ESTRON Index` (verify). |
-| DSL / Bund yields or ASW spreads by maturity | $s$, $\Delta s$, bond revaluation | Bloomberg | e.g. `GTNLG<n>Y Govt`, `GTDEM<n>Y Govt` (verify). |
-| MMF yield vs €STR / Euribor | cash drag $c$ | Bloomberg / Cardano | |
-| Cohort cash flows | $D_L$, later key-rate profile | Cardano, or stylised with the AG Prognosetafel | Confidential if from Cardano. |
-| Collateral stress move, IM | constraint 4 | Cardano collateral management | |
-| Swaption implied vols | stage 2+ only | Bloomberg | |
+| Series                                       | Used for                                    | Source                                         | Notes                                                                                 |
+| -------------------------------------------- | ------------------------------------------- | ---------------------------------------------- | ------------------------------------------------------------------------------------- |
+| DNB RTS (full curve)                         | $R_L$, liability durations                | DNB website                                    | Methodology changes over time (LLP, UFR / extrapolation). Store the version per date. |
+| EUR swap curve vs 6m Euribor, 1–50y         | $y(\tau)$, $\Delta y$, swap revaluation | Bloomberg                                      | Candidate tickers `EUSA<n> Curncy` (verify).                                        |
+| €STR OIS curve                              | discounting, robustness                     | Bloomberg                                      | €STR exists only from Oct 2019.                                                      |
+| 6m Euribor, €STR fixings                    | $r^f$, cash return                        | Bloomberg                                      | e.g. `EUR006M Index`, `ESTRON Index` (verify).                                    |
+| DSL / Bund yields or ASW spreads by maturity | $s$, $\Delta s$, bond revaluation       | Bloomberg                                      | e.g. `GTNLG<n>Y Govt`, `GTDEM<n>Y Govt` (verify).                                 |
+| MMF yield vs €STR / Euribor                 | cash drag $c$                             | Bloomberg / Cardano                            |                                                                                       |
+| Cohort cash flows                            | $D_L$, later key-rate profile             | Cardano, or stylised with the AG Prognosetafel | Confidential if from Cardano.                                                         |
+| Collateral stress move, IM                   | constraint 4                                | Cardano collateral management                  |                                                                                       |
+| Swaption implied vols                        | stage 2+ only                               | Bloomberg                                      |                                                                                       |
 
 **Estimation.**
+
 - $\sigma_y$, $\sigma_s$, $\rho$ come from monthly changes: full sample, rolling 5y, and EWMA as
   robustness.
 - Expected returns come from today's curve and spreads.
@@ -358,6 +372,7 @@ Use these to run the pipeline before data arrive. Every parameter object carries
   month, not with duration approximations, over a sample that **includes 2022**. Compare realised
   mismatch with the model's $\mu$ and $\sigma$.
 - **Ex-post mismatch attribution**, aligned with the deviation sources DNB and Cardano name:
+
   $$
   m_t = \underbrace{(w_b s - w_c c)\Delta}_{\text{spread income, cash drag}}
   + \underbrace{\kappa\,\Delta}_{\text{curve carry}} \;
@@ -366,6 +381,7 @@ Use these to run the pipeline before data arrive. Every parameter object carries
   + \underbrace{\varepsilon^{\text{curve}}_t}_{\text{non-parallel}}
   + \underbrace{\varepsilon^{\text{conv}}_t}_{\text{convexity, residual}} .
   $$
+
   Here $\kappa$ is the curve-carry mismatch term of §6.4. The components must sum to the total;
   test that the residual is small.
 - **Out-of-model evaluation, not only out-of-sample.** Frontiers fitted on calm periods get tested on
@@ -374,6 +390,7 @@ Use these to run the pipeline before data arrive. Every parameter object carries
 ## 9. Code conventions
 
 **Repo layout** (proposed; `Data/`, `Model/` and `Docs/` already exist):
+
 ```
 Fulcrum/
 ├── Data/
@@ -399,6 +416,7 @@ Fulcrum/
 also needs `scipy cvxpy matplotlib pytest openpyxl pyarrow`. Pin versions in `requirements.txt`.
 
 **Units and signs.**
+
 - Store all rates, spreads and returns as **decimals p.a.** internally (40 bp = `0.0040`). Convert to
   bp only in reporting and plots.
 - Durations are in years. Shocks are decimals (+100 bp = `0.01`).
@@ -408,6 +426,7 @@ also needs `scipy cvxpy matplotlib pytest openpyxl pyarrow`. Pin versions in `re
 - $s$ = bond yield − swap rate (note that the US "swap spread" has the opposite sign).
 
 **Style.**
+
 - Variable names mirror the symbols in §6 (`w_b`, `n_s`, `D_L`, `sigma_s`, `rho`).
 - Every function docstring states the formula it implements and its units.
 - Pure functions for the maths; I/O kept separate.
@@ -415,6 +434,7 @@ also needs `scipy cvxpy matplotlib pytest openpyxl pyarrow`. Pin versions in `re
 - Code and comments in English. Dutch terms only as defined in §12.
 
 **Data hygiene.**
+
 - Bloomberg data is licensed and must not be redistributed.
 - Cardano client data is confidential.
 - Neither goes into git. Add `Data/raw/` and `Data/processed/` to `.gitignore`, and check the GitHub
@@ -440,24 +460,28 @@ also needs `scipy cvxpy matplotlib pytest openpyxl pyarrow`. Pin versions in `re
 ## 11. Literature (full annotated list in the claude.ai project: `literature-shortlist-LDI-overlay-wtp.md`)
 
 **Closest and practitioner:**
+
 - Ernsting, Teunissen & Vereijken (2025), "Is er nog ruimte voor obligaties binnen de
   beschermingsportefeuille?", *VBA Journaal* 160, 39–43.
 - Potter van Loon & Alserda (2025), "Beschermingsrendement: Theoretisch of praktisch?",
   *VBA Journaal* 160, 30–36.
 
 **Positioning:**
+
 - Sharpe & Tint (1990), "Liabilities—A New Approach", *JPM* 16.
 - Hoevenaars, Molenaar, Schotman & Steenkamp (2008), *JEDC* 32.
 - Ang, Chen & Sundaresan, "LDI with downside risk".
 - Redington (1952).
 
 **Wtp:**
+
 - Werker (2022), Netspar Board Brief.
 - DNB Open Boek Toezicht on managing interest rate protection in the SPR.
 - van Gastel, Kortleve, Nijman & Schotman (2024).
 - Bovenberg & Mehlkopf (2014).
 
 **Frictions:**
+
 - Jansen, Klingler, Ranaldo & Duijm (2026), "Pension Liquidity Risk", *RFS*.
 - Brunnermeier & Pedersen (2009).
 - Gârleanu & Pedersen (2011).
@@ -466,6 +490,7 @@ also needs `scipy cvxpy matplotlib pytest openpyxl pyarrow`. Pin versions in `re
 - BoE (2023) on the 2022 gilt crisis.
 
 **Method:**
+
 - Ho (1992), key rate durations.
 - Rockafellar & Uryasev (2000), CVaR.
 - Gârleanu & Pedersen (2013).
@@ -478,23 +503,23 @@ Local PDFs: `Cardano/Thesis/Papers/Overlay portfolio management optimization`.
 
 ## 12. Glossary (NL → EN, as used in code and text)
 
-| Dutch | English / meaning |
-|---|---|
-| Wet toekomst pensioenen (Wtp) | Future Pensions Act |
-| Solidaire / flexibele premieregeling (SPR / FPR) | solidarity / flexible contribution scheme |
-| Beschermingsrendement (BR) | protection return |
-| Overrendement (OR) | excess return |
-| Mismatchrendement | mismatch return = realised − intended BR |
-| Projectierendement | projection return |
-| Rentetermijnstructuur (RTS) | DNB term structure of interest rates |
+| Dutch                                                   | English / meaning                                     |
+| ------------------------------------------------------- | ----------------------------------------------------- |
+| Wet toekomst pensioenen (Wtp)                           | Future Pensions Act                                   |
+| Solidaire / flexibele premieregeling (SPR / FPR)        | solidarity / flexible contribution scheme             |
+| Beschermingsrendement (BR)                              | protection return                                     |
+| Overrendement (OR)                                      | excess return                                         |
+| Mismatchrendement                                       | mismatch return = realised − intended BR             |
+| Projectierendement                                      | projection return                                     |
+| Rentetermijnstructuur (RTS)                             | DNB term structure of interest rates                  |
 | Theoretische (indirecte) / praktische (directe) methode | theoretical (indirect) / practical (direct) BR method |
-| Annuïteitsfactor / tarief | annuity factor (capital per €1 of benefit) |
-| Beschermingsportefeuille / rendementsportefeuille | protection (matching) / return portfolio |
-| Renteafdekking, afdekkingspercentage | interest rate hedge, hedge ratio |
-| Toedelingsregels | allocation rules |
-| Leenrestrictie | borrowing restriction |
-| Dekkingsgraad | funding ratio (FTK) |
-| Zekerheidsequivalent | certainty equivalent |
+| Annuïteitsfactor / tarief                              | annuity factor (capital per €1 of benefit)           |
+| Beschermingsportefeuille / rendementsportefeuille       | protection (matching) / return portfolio              |
+| Renteafdekking, afdekkingspercentage                    | interest rate hedge, hedge ratio                      |
+| Toedelingsregels                                        | allocation rules                                      |
+| Leenrestrictie                                          | borrowing restriction                                 |
+| Dekkingsgraad                                           | funding ratio (FTK)                                   |
+| Zekerheidsequivalent                                    | certainty equivalent                                  |
 
 ## 13. Lessons already learned (do not repeat)
 
@@ -590,4 +615,28 @@ _Source: Claude memory only (chat-history search tools were not available in thi
 - **Next steps**
   - Implement the base case ($\theta_E = 0$, $\beta = \omega = 1$; policies 1 and 2) for the supervisors in ~two weeks; then HJB / optimal $x_B$.
   - Open questions from the reading: when do KKT conditions apply (and are they only analytical)? What do "Markovian" and "class of probability distributions" mean in Merton (1969)? Why mean–variance (Sharpe–Tint) vs CRRA (Merton), and which utilities are candidates?
+
+### Week ending 2026-10-24
+
+_Source: Claude memory only (chat-history search tools were not available in this run); no thesis memory file was updated after 2026-10-16, so work done this week may be missing._
+
+- Modeled the base case in Model/Lifecycle_mismatchrisk_scrap.ipynb where the lifecycle of a fully protected stylistic cohort is evaluated who carries all mismatch return and does not have exposure to risky asset. Hence, pension entitlement depends only on the mismatch return. This is actually the base base case, since it evaluates two policies of spread risk. Next step is obtaining analytical solution.
+
+### Week ending 2026-10-27
+
+_Sources: memory inbox (3 items), thesis memory files changed in the window (proposal notes, literature reading notes); weekly_notes.md not present; chat-history tools unavailable in this run._
+
+- **Decisions**
+  - Supersedes §5 Stage 1 and §6 (one-period mean–tracking-error QP / Markowitz frontier): this chapter is **dropped and will not be implemented**. The thesis goes directly to the dynamic Merton lifecycle optimisation with mismatch as a second, rewarded risk source (previously Stage 3 / chapter 2). §6 remains useful only as background on instruments, BR and data.
+  - Adds to §6.1 (date uncertain, recorded in memory this week): pension entitlement is measured in annuity-factor units, $P_t = F_t / a_t$; Frank sees the protection return / annuity factor as the **numéraire** of the model.
+- **Progress**
+  - Literature (adds to §11): finished **Mehlkopf & Van Bilsen (2020)**, "Renterisico, lifecycle en pensioencontract", Netspar Brief 19, plus appendix (Occasional Paper 1): Vasicek short rate with an SDF-derived bond SDE. Notes: the term premium creates extra hedging demand; human capital with known, age-independent premiums acts as a bond; higher AOW, low risk aversion and (under flexible premium) young cohorts need less rate hedging; the paper assumes equity and rates uncorrelated, which Frank flags as unrealistic (model the correlation).
+  - Literature: started **Heijmans (2025)**, EUR MSc QF thesis (numerical Merton lifecycle under Wtp with inflation), as a template for an eventual numerical approach.
+  - Code: no new code progress logged since the notebook entry of last week.
+- **Cardano input**
+  - No answers to §10 questions found this week.
+- **Next steps**
+  - Obtain the analytical (HJB) solution for the base case and the optimal $x_B$ policy (carried over).
+  - Open question from the reading: what is "halfwaardetijd" (half-life) in Mehlkopf & Van Bilsen?  Answer: In an Ornstein Uhlenbeck-process, the half-life is the time it takes for an expected deviation from the long-run level to halve.
+
 <!-- weekly-log:end -->
